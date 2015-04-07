@@ -241,14 +241,7 @@ def precachepdf(xfxQ, fval, xval, qval):
 
 def parallelrep(i, nrep, pdf, pdf_name, file, path, xs0, qs0, fs0, vec, store_xfxQ, rep0):
     """ write to file using multiple processors """
-    suffix = ""
-    if i < 10:
-        suffix = "000" + str(i)
-    elif i < 100:
-        suffix = "00" + str(i)
-    elif i < 1000:
-        suffix = "0" + str(i)
-    else: suffix = str(i)
+    suffix = str(i).zfill(4)
 
     print " -> Writing replica", i
     header, xs, qs, fs = load_replica(pdf.base[i-1], path + "/" + pdf_name)
@@ -301,6 +294,68 @@ def comp_hess(nrep, vec, xfxQ, f, x, cv):
     return err**0.5
 
 def make_grid(pdf, pdf_name, nrep, vec):
+    num_cores = multiprocessing.cpu_count()
+    path = lhapdf.paths()[0] + "/" + pdf_name
+    file = pdf_name + "_hessian_" + str(nrep)
+    print "\n- Exporting new grid:", file
+    if not os.path.exists(file): os.makedirs(file)
+
+    # print info file
+    inn = open(path + "/" + pdf_name + ".info", 'rb')
+    out = open(file + "/" + pdf_name + "_hessian_" + str(nrep) + ".info", 'wb')
+
+    for l in inn.readlines():
+        if l.find("SetDesc:") >= 0: out.write("SetDesc: \"Hessian " + pdf_name + "_hessian\"\n")
+        elif l.find("NumMembers:") >= 0: out.write("NumMembers: " + str(nrep+1) + "\n")
+        elif l.find("ErrorType: replicas") >= 0: out.write("ErrorType: symmhessian\n")
+        else: out.write(l)
+    inn.close()
+    out.close()
+
+    # print replica 0
+    print " -> Writing replica 0"
+    header, xs0, qs0, fs0 = load_replica(0, path + "/" + pdf_name)
+
+    out = open(file + "/" + pdf_name + "_hessian_" + str(nrep) + "_0000.dat", 'wb')
+    out.write(header)
+
+    store_xfxQ = []
+    rep0 = []
+    for sub in range(len(xs0)):
+        out.write(xs0[sub])
+        out.write(qs0[sub])
+        out.write(fs0[sub])
+
+        xval = xs0[sub].split()
+        qval = qs0[sub].split()
+        fval = fs0[sub].split()
+        xval = [float(i) for i in xval]
+        qval = [float(i) for i in qval]
+        fval = [int(i)   for i in fval]
+
+        # precache PDF grids
+        res = numpy.zeros(shape=(nrep, len(fval), len(xval), len(qval)))
+        for r in range(nrep):
+            res[r] = precachepdf(pdf.pdf[pdf.base[r]].xfxQ, fval, xval, qval)
+        store_xfxQ.append(res)
+
+        # compute replica 0
+        rep0.append(precachepdf(pdf.pdf[0].xfxQ, fval, xval, qval))
+
+        for ix in range(len(xval)):
+            for iq in range(len(qval)):
+                for fi in range(len(fval)):
+                    print >> out, "%14.7E" % rep0[sub][fi, ix, iq],
+                out.write("\n")
+        out.write("---\n")
+    out.close()
+    # printing eigenstates
+    Parallel(n_jobs=num_cores)(delayed(parallelrep)(i, nrep, pdf, pdf_name,
+             file, path, xs0, qs0, fs0, vec, store_xfxQ, rep0)
+             for i in range(1, nrep+1))
+    print " [Done]"
+
+def make_grid2(pdf, pdf_name, nrep, vec):
     num_cores = multiprocessing.cpu_count()
     path = lhapdf.paths()[0] + "/" + pdf_name
     file = pdf_name + "_hessian_" + str(nrep)
