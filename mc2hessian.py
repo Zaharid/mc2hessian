@@ -193,15 +193,7 @@ def dumptofile(F, xval, qval, fval, vec, store_xfxQ, rep0):
 
 def load_replica(rep, pdf_name):
     """ Extract information from replica file """
-    suffix = ""
-    if rep < 10:
-        suffix = "000" + str(rep)
-    elif rep < 100:
-        suffix = "00" + str(rep)
-    elif rep < 1000:
-        suffix = "0" + str(rep)
-    else: suffix = str(rep)
-
+    suffix = str(rep).zfill(4)
     inn = open(pdf_name + "_" + suffix + ".dat", 'rb')
     # extract header
     header = ""
