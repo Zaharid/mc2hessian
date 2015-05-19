@@ -33,8 +33,11 @@ if __name__ == '__main__':
     z2= d.erf.as_matrix()
     z = d.real_erf.as_matrix()
     blue_curve = d.ix[d.groupby('eps').erf.apply(np.argmin)]
+    black_curve = d.ix[d.groupby('eps').real_erf.apply(np.argmin)]
+    black_curve = black_curve[black_curve.nparams > 140]
+    
             
-#    cset = plt.contour(c, np.arange(0,5,.5), linewidth=2, colors='k')
+#    cset = plt.contour(c, np.blackarangearange(0,5,.5), linewidth=2, colors='k')
 #    plt.clabel(cset, inline=True, fmt="%1.1f%%", rotation='vertical' )
 #    im = plt.imshow(c, cmap=palettable.colorbrewer.diverging.Spectral_11.mpl_colormap)#'RdBu')
 #    plt.colorbar(im)
@@ -84,6 +87,9 @@ if __name__ == '__main__':
         plt.plot(blue_curve.nparams.as_matrix(), blue_curve.eps.as_matrix(), 
                  blue_curve.erf.as_matrix(), color='blue', linewidth=2)
         
+        #plt.plot(black_curve.nparams.as_matrix(), black_curve.eps.as_matrix(), 
+        #         black_curve.erf.as_matrix(), color='black', linewidth=2)
+        
         
        # s = ax.plot_trisurf(d.eps,d.real_erf, d.nparams, cmap=cm.rainbow, antialiased=False,linewidth=0)
         ax.set_xlabel("Number of eigenvectors")
@@ -95,3 +101,14 @@ if __name__ == '__main__':
         fig.colorbar(s1)
         #fig.colorbar(s2)
         fig.savefig("/home/zah/Desktop/colors/%s.png" % cmap.name)
+
+plt.figure(figsize = (16,9))
+plt.plot(eps25.nparams.as_matrix(), eps25.eps.as_matrix(), color='darkred')
+plt.plot(blue_curve.nparams.as_matrix(), blue_curve.eps.as_matrix(), 
+         color='blue', linewidth=2)
+plt.plot(black_curve.nparams.as_matrix(), black_curve.eps.as_matrix(), 
+         color='black', linewidth=2)
+plt.xlabel("Number of eigenvectors")
+plt.ylabel(r"$\varepsilon$", fontsize=30)
+
+ax.set_xlim(0,200)
